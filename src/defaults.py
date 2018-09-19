@@ -3,7 +3,7 @@ import os
 
 # Format of output deliverables
 def export_format():
-    format_im = ['*.JPG', '*.jpg', '*.png', '*.PNG', '*.jpeg', '*.JPEG']
+    format_im = ['.JPG', '.jpg', '.png', '.PNG', '.jpeg', '.JPEG']
     format_ortho = ['.tif', '.png']
     format_dsm = ['.tif']
     format_pc = ['.ply', '.las']
