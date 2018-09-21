@@ -1,15 +1,6 @@
-def log2file(project_path, project_name):
-    logging.basicConfig(filename=os.path.join(
-        project_path, project_name + "_log.txt"))
-    stderrLogger = logging.StreamHandler()
-    stderrLogger.setFormatter(logging.Formatter(logging.BASIC_FORMAT))
-    logging.getLogger().addHandler(stderrLogger)
-
-
-import logging
 import PhotoScan
 import os
-from fnmatch import fnmatch
+import sys
 import shapefile
 from tkinter import filedialog
 from tkinter import *
@@ -18,7 +9,7 @@ import ntpath
 import gdal
 import shutil
 import argparse
-from src import defaults
+from src import defaults as dft
 from src import general as gn
 from src import exif as exf
 from src import convhull as cvh
@@ -46,12 +37,21 @@ cond_exp_pc = args.pointcloud
 # Initialising photoscan project
 doc = PhotoScan.app.document
 
+# Default formats
+dft_format = dft.export_format()
+
+format_im = dft_format[0]
+format_ortho = dft_format[1]
+format_dsm = dft_format[2]
+format_pc = dft_format[3]
+format_mesh = dft_format[4]
+
+
 # Set tkinter and variables
 tk_project = Tk()
 tk_shp = Tk()
 tk_photos = Tk()
 resolution_raster = 0.05  # In Metres
-pattern = ['.JPG', '.jpg', '.png', '.PNG', '.jpeg', '.JPEG']
 max_keypoint = 40000
 max_tiepoint = 4000
 
@@ -67,38 +67,45 @@ project_path = filedialog.askdirectory(
 project_name = PhotoScan.app.getExistingDirectory(
     'Enter name of the project: ')
 
-# Logging to file
-log2file(project_path, project_name)
-
-# Output Directory
-gn.create_dir(os.path.join(project_path, 'output', project_name))
-gn.create_dir(os.path.join(project_path, 'output', 'orthomosaic'))
-
 # Reading Photos Location
 path_photos = filedialog.askdirectory(
     initialdir='/', title='Select photos location')
 
 doc.save(os.path.join(project_path, project_name+'.psx'))
 
-# Reading Shapefiles
-path_shp = filedialog.askopenfilename(
-    initialdir='/', title='Select shapefile', filetypes=(('shapefile', '*.shp'), ('all files', '*.*')))
-
-sf = shapefile.Reader(path_shp)
-
-num_shp = len(sf.shapes())
-
 # Sub_Projects=gn.booldialogbox("Do you want to create sub-projects?")
 Processing_area = gn.booldialogbox("Do you want to enter processing area?")
+
+# Processing area if given
+if Processing_area == 1:
+    # Reading Shapefiles
+    path_shp = filedialog.askopenfilename(
+        initialdir='/', title='Select shapefile',
+        filetypes=(('shapefile', '*.shp'), ('all files', '*.*')))
+
+    sf = shapefile.Reader(path_shp)
+    num_shp = len(sf.shapes())
+
+# Output paths
+dft_output_path = dft.export_path(
+    os.path.join(project_path, 'output', project_name))
+
+path_ortho = dft_output_path[0]
+path_dsm = dft_output_path[1]
+path_pc = dft_output_path[2]
+path_mesh = dft_output_path[3]
+
+# Logging to file
+gn.log2file(project_path, project_name)
 
 # photo_list = defaultdict(list)
 photo_list = []
 
 for path, subdirs, files in os.walk(path_photos):
     for name in files:
-        for k in range(len(pattern)):
+        for k in range(len(format_im)):
             fileExt = os.path.splitext(name)[-1]
-            if fileExt == pattern[k]:
+            if fileExt == format_im[k]:
                 image = os.path.join(path_photos, name)
                 photo_list.append(image)
 
@@ -128,13 +135,14 @@ for camera in chunk.cameras:
 output_projection = PhotoScan.CoordinateSystem(
     gn.get_epsg(coord[1], coord[0]))  # UTM Projected Coordinate System
 
-# ,boundary_type=PhotoScan.Shape.BoundaryType.OuterBoundary)
-chunk.importShapes(path=path_shp)
+if Processing_area == 1:
+    # ,boundary_type=PhotoScan.Shape.BoundaryType.OuterBoundary)
+    chunk.importShapes(path=path_shp)
 
-if not chunk.shapes:
-    chunk.shapes = PhotoScan.Shape()
-
-PhotoScan.Shape.BoundaryType.OuterBoundary
+    print(chunk.shapes)
+    for shape in chunk.shapes:
+        if shape.type == PhotoScan.Shape.Type.Polygon:
+            shape.boundary_type = PhotoScan.Shape.BoundaryType.OuterBoundary
 
 # PhotoScan.Shape.BoundaryType.OuterBoundary
 doc.save()
@@ -175,27 +183,29 @@ chunk.buildOrthomosaic(surface=PhotoScan.ElevationData, blending=PhotoScan.Mosai
 doc.save()
 
 
-# Defining Directories
-output_path = os.path.join(project_path, 'output', project_name)
+# # Defining Directories
+# output_path = os.path.join(project_path, 'output', project_name)
 
-gn.create_dir(output_path)
+# gn.create_dir(output_path)
 
 # Exporting
 if cond_exp_ortho == 1:
     print('exporting orthomosaic')
-    chunk.exportOrthomosaic(os.path.join(output_path ,"ortho.tif"), image_format=PhotoScan.ImageFormatTIFF, format=PhotoScan.RasterFormatTiles,
+    chunk.exportOrthomosaic(os.path.join(path_ortho, "ortho.tif"), image_format=PhotoScan.ImageFormatTIFF, format=PhotoScan.RasterFormatTiles,
                             raster_transform=PhotoScan.RasterTransformNone, tiff_big=True,
                             write_kml=False, write_world=True, write_alpha=True, tiff_compression=PhotoScan.TiffCompressionLZW,
                             tiff_overviews=True, jpeg_quality=80, projection=output_projection)
 
 if cond_exp_pc == 1:
     print('exporting point cloud')
-    chunk.exportPoints(os.path.join(output_path, "PC.las"), binary=True,
-                       precision=6, colors=True, format=PhotoScan.PointsFormatLAS)
+    chunk.exportPoints(os.path.join(path_pc, "PC.las"), binary=True,
+                       precision=6, colors=True, format=PhotoScan.PointsFormatLAS,
+                       projection=output_projection)
 
 if cond_exp_dsm == 1:
     print('exporting dsm')
-    chunk.exportDem(os.path.join(output_path, "DSM.tif"), image_format=PhotoScan.ImageFormatTIFF, tiff_big=True, nodata=-9999, write_kml=False, write_world=True)
+    chunk.exportDem(os.path.join(path_dsm, "DSM.tif"), image_format=PhotoScan.ImageFormatTIFF,
+                    tiff_big=True, nodata=-9999, write_kml=False, write_world=True)
 
 # Export to PNG
 # shutil.copy(output_ortho + str(counter_1) +'.tfw', output_orthomosaic_PNG_path + str(counter_1)  +'.pgw');
@@ -207,3 +217,4 @@ print("Finished")
 
 #################################################################################################
 PhotoScan.app.quit()
+sys.exit()
