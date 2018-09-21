@@ -107,6 +107,5 @@ def conv_hull(file, path_shp):
             # print 'cross res = ', res
             if res < 0:
                 inside[k] = 0
-                continue
-
+                
         return inside

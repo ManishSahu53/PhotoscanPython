@@ -1,3 +1,12 @@
+def log2file(project_path, project_name):
+    logging.basicConfig(filename=os.path.join(
+        project_path, project_name + "_log.txt"))
+    stderrLogger = logging.StreamHandler()
+    stderrLogger.setFormatter(logging.Formatter(logging.BASIC_FORMAT))
+    logging.getLogger().addHandler(stderrLogger)
+
+
+import logging
 import PhotoScan
 import os
 from fnmatch import fnmatch
@@ -13,7 +22,28 @@ from src import defaults
 from src import general as gn
 from src import exif as exf
 from src import convhull as cvh
+from collections import defaultdict
+import argparse
 
+
+parser = argparse.ArgumentParser(
+    'This is used to run Agisoft"s photogrammetric processing. Output will be in UTM format only')
+
+parser.add_argument('-or', '--ortho', help='Process and output orthomosaic',
+                    required=False, default=1,  type=int)
+parser.add_argument('-dsm', '--dsmodel', help='Process and output Digital Surface Model',
+                    required=False, default=1,  type=int)
+parser.add_argument('-pc', '--pointcloud', help='Process and output Point Cloud',
+                    required=False, default=0,  type=int)
+
+args = parser.parse_args()
+
+# Parameters
+cond_exp_ortho = args.ortho
+cond_exp_dsm = args.dsmodel
+cond_exp_pc = args.pointcloud
+
+# Initialising photoscan project
 doc = PhotoScan.app.document
 
 # Set tkinter and variables
@@ -30,13 +60,15 @@ geographic_projection = PhotoScan.CoordinateSystem(
     'EPSG::4326')  # WGS Geographic Coordinatee System
 
 # Project Directory
-tk_project.directory = filedialog.askdirectory(
+project_path = filedialog.askdirectory(
     initialdir='/', title='Select Location to save project')
-project_path = tk_project.directory
 
 # Project Name
 project_name = PhotoScan.app.getExistingDirectory(
     'Enter name of the project: ')
+
+# Logging to file
+log2file(project_path, project_name)
 
 # Output Directory
 gn.create_dir(os.path.join(project_path, 'output', project_name))
@@ -56,169 +88,122 @@ sf = shapefile.Reader(path_shp)
 
 num_shp = len(sf.shapes())
 
-Sub_Projects = gn.booldialogbox("Do you want to create sub-projects?")
+# Sub_Projects=gn.booldialogbox("Do you want to create sub-projects?")
 Processing_area = gn.booldialogbox("Do you want to enter processing area?")
 
-# Creating chucks
-for i in range(num_shp):
-    chunk = doc.addChunk()
-    chunk.label = gn.path_leaf(str(i))
-
-
+# photo_list = defaultdict(list)
 photo_list = []
+
 for path, subdirs, files in os.walk(path_photos):
     for name in files:
-        for k in range(len())
-        if fnmatch(name, pattern):
-            inside = cvh.conv_hull(os.path.join(path_photos, name), path_shp)
+        for k in range(len(pattern)):
+            fileExt = os.path.splitext(name)[-1]
+            if fileExt == pattern[k]:
+                image = os.path.join(path_photos, name)
+                photo_list.append(image)
 
-            for j in range(len(inside)):
-                # If image lie outisde shape file then continue else
-                if inside[j] == 0:
-                    continue
-                else:
-                    # Activate chunk
-                    doc.chunk = doc.chunks[j]
+chunk = doc.addChunk()
+chunk.label = '1'
 
-                    # Set Coordinate System
-                    chunk.crs = geographic_projection
-                    chunk.updateTransform()
-                    chunk.addPhotos(os.path.join(path_photos, name))
+# # Activate chunk
+# doc.chunk = doc.chunks
 
-# # Loop Start
-# for k in range(0, no_of_folders):
-#     directory = str(folders_in_images[k])
+# Set Coordinate System
+chunk.crs = geographic_projection
+chunk.updateTransform()
+chunk.addPhotos(photo_list)
 
-#     chunk = doc.addChunk()
-#     chunk.label = gn.path_leaf(folders_in_images[k])
-#     doc.chunk = doc.chunks[k]
+doc.save()
 
-#     # Set Coordinate System
-#     chunk.crs = geographic_projection
-#     chunk.updateTransform()
-#     chunk.addPhotos(photo_list)
+# Loop Start
 
-#     # Adding Exif data Lat, Long, Elevation to each Camera
-#     for camera in chunk.cameras:
-#         if camera.reference.location:
-#             coord = camera.reference.location
-#             camera.reference.location = PhotoScan.Vector(
-#                 [coord[0], coord[1], coord[2]])
+# Adding Exif data Lat, Long, Elevation to each Camera
+for camera in chunk.cameras:
+    if camera.reference.location:
+        coord = camera.reference.location
+        camera.reference.location = PhotoScan.Vector(
+            [coord[0], coord[1], coord[2]])
 
-#     # Output Projection System
-#     Output_projection = PhotoScan.CoordinateSystem(
-#         gn.get_epsg(coord[1], coord[0]))  # UTM Projected Coordinate System
+# Output Projection System
+output_projection = PhotoScan.CoordinateSystem(
+    gn.get_epsg(coord[1], coord[0]))  # UTM Projected Coordinate System
 
-#     # ,boundary_type=PhotoScan.Shape.BoundaryType.OuterBoundary)
-#     chunk.importShapes(path=path_shp)
-#     counter = 0  # counter for making sure that smae shape has been selected
-#     for i in chunk.shapes:
-#         if i.type != PhotoScan.Shape.Type.Polygon:
-#             continue
-#         if counter == k:
-#             shape = i
-#         counter = counter + 1
+# ,boundary_type=PhotoScan.Shape.BoundaryType.OuterBoundary)
+chunk.importShapes(path=path_shp)
 
-#     shape.boundary_type = PhotoScan.Shape.BoundaryType.OuterBoundary
+if not chunk.shapes:
+    chunk.shapes = PhotoScan.Shape()
 
-#     # PhotoScan.Shape.BoundaryType.OuterBoundary
-#     doc.save()
-#     print("Saving Agisoft Project")
+PhotoScan.Shape.BoundaryType.OuterBoundary
 
-#     # Align photos
-#     chunk.matchPhotos(accuracy=PhotoScan.HighAccuracy, generic_preselection=True,
-#                       filter_mask=False, keypoint_limit=max_keypoint, tiepoint_limit=max_tiepoint)
-#     chunk.alignCameras()
-#     chunk.optimizeCameras()
-#     # save
-#     doc.save()
+# PhotoScan.Shape.BoundaryType.OuterBoundary
+doc.save()
+print("Saving Agisoft Project")
 
-#     # build dense cloud
-#     chunk.buildDepthMaps(quality=PhotoScan.MediumQuality,
-#                          filter=PhotoScan.AggressiveFiltering, reuse_depth=True)
-#     chunk.buildDenseCloud()
+# Align photos
+chunk.matchPhotos(accuracy=PhotoScan.HighAccuracy, generic_preselection=True,
+                  filter_mask=False, keypoint_limit=max_keypoint, tiepoint_limit=max_tiepoint)
+chunk.alignCameras()
+chunk.optimizeCameras()
 
-#     # save
-#     doc.save()
+# saving images
+doc.save()
 
-#     #chunk.exportPoints(project_path + project_name + ".las", binary=True, precision=6, colors=True, format=PhotoScan.PointsFormatLAS)
-#     # build mesh
-#     #chunk.buildModel(surface = PhotoScan.HeightField, interpolation = PhotoScan.EnabledInterpolation, face_count=PhotoScan.MediumFaceCount )
+# build dense cloud
+chunk.buildDepthMaps(quality=PhotoScan.MediumQuality,
+                     filter=PhotoScan.AggressiveFiltering, reuse_depth=True)
+chunk.buildDenseCloud()
 
-#     # Build DEM
-#     chunk.buildDem(source=PhotoScan.DenseCloudData,
-#                    interpolation=PhotoScan.EnabledInterpolation, projection=Output_projection)
+# save
+doc.save()
 
-#     # save
-#     doc.save()
+# build mesh
+# chunk.buildModel(surface = PhotoScan.HeightField, interpolation = PhotoScan.EnabledInterpolation, face_count=PhotoScan.MediumFaceCount )
 
-#     #chunk.exportDem(project_path + project_name + "_DEM.tif", image_format=PhotoScan.ImageFormatTIFF, raster_format = PhotoScan.RasterFormatTiles, nodata=-9999, write_kml=False, write_world=True)
+# Build DEM
+chunk.buildDem(source=PhotoScan.DenseCloudData,
+               interpolation=PhotoScan.EnabledInterpolation, projection=output_projection)
 
-#     # Build Ortho
-#     chunk.buildOrthomosaic(surface=PhotoScan.ElevationData, blending=PhotoScan.MosaicBlending,
-#                            fill_holes=True, dx=resolution_raster, dy=resolution_raster)
+# save
+doc.save()
 
-#     # If all the images are present in one folder then process all images at once and export ortho mosaic according to shapefile defined
-#     if no_of_folders == 1:
-#         doc.save()
-#         shape.boundary_type = PhotoScan.Shape.BoundaryType.NoBoundary
-#         counter_1 = 0
-#         del shape  # Deleting Previously defined chunk.shape
+# Build Ortho
+chunk.buildOrthomosaic(surface=PhotoScan.ElevationData, blending=PhotoScan.MosaicBlending,
+                       fill_holes=True, dx=resolution_raster, dy=resolution_raster)
 
-#         for shape in chunk.shapes:  # Iterating of shapes to clip output
-#             if shape.type != PhotoScan.Shape.Type.Polygon:
-#                 continue
-#             shape.boundary_type = PhotoScan.Shape.BoundaryType.OuterBoundary
 
-#             # Defining Directories
-#             output_orthomosaic_tiff_path = Orthomosaic_path + "tiff/"
-#             output_orthomosaic_KMZ_path = Orthomosaic_path + "KMZ/"
-#             output_orthomosaic_PNG_path = Orthomosaic_path + "PNG/"
-#             create_dir(output_orthomosaic_tiff_path)
-#             create_dir(output_orthomosaic_KMZ_path)
-#             create_dir(output_orthomosaic_PNG_path)
+doc.save()
 
-#             # Export to Tiff
-#             #chunk.exportOrthomosaic(output_orthomosaic_tiff_path + str(counter_1) + ".tif", image_format=PhotoScan.ImageFormatTIFF, format = PhotoScan.RasterFormatTiles, raster_transform=PhotoScan.RasterTransformNone, write_kml=False, write_world=True,write_alpha=True,tiff_compression=PhotoScan.TiffCompressionPackbits,tiff_overviews=True,jpeg_quality=80,projection=Output_projection)
 
-#             # Export to KML
-#             #chunk.exportOrthomosaic(output_orthomosaic_KMZ_path  + str(counter_1) + ".kmz", image_format=PhotoScan.ImageFormatPNG, format = PhotoScan.RasterFormatKMZ, tiff_compression=PhotoScan.TiffCompressionJPEG,write_kml=True,jpeg_quality=80,write_alpha=True)
+# Defining Directories
+output_path = os.path.join(project_path, 'output', project_name)
 
-#             # Export to PNG
-#             #shutil.copy(output_orthomosaic_tiff_path + str(counter_1) +'.tfw', output_orthomosaic_PNG_path + str(counter_1)  +'.pgw');
-#             #gdal_translate = gdal.Translate(output_orthomosaic_PNG_path + str(counter_1) +".png", output_orthomosaic_tiff_path + str(counter_1) + ".tif", creationOptions = ['COMPRESS=JPEG','TILED=YES'])
-#             #shape.boundary_type = PhotoScan.Shape.BoundaryType.NoBoundary
-#             counter_1 = counter_1 + 1
-#             doc.save()
+gn.create_dir(output_path)
 
-#     else:
-#         # Defining Directories
-#         output_orthomosaic_tiff_path = Orthomosaic_path + "tiff/"
-#         output_orthomosaic_KMZ_path = Orthomosaic_path + "KMZ/"
-#         output_orthomosaic_PNG_path = Orthomosaic_path + "PNG/"
-#         create_dir(output_orthomosaic_tiff_path)
-#         create_dir(output_orthomosaic_KMZ_path)
-#         create_dir(output_orthomosaic_PNG_path)
+# Exporting
+if cond_exp_ortho == 1:
+    print('exporting orthomosaic')
+    chunk.exportOrthomosaic(os.path.join(output_path ,"ortho.tif"), image_format=PhotoScan.ImageFormatTIFF, format=PhotoScan.RasterFormatTiles,
+                            raster_transform=PhotoScan.RasterTransformNone, tiff_big=True,
+                            write_kml=False, write_world=True, write_alpha=True, tiff_compression=PhotoScan.TiffCompressionLZW,
+                            tiff_overviews=True, jpeg_quality=80, projection=output_projection)
 
-#         doc.save()
+if cond_exp_pc == 1:
+    print('exporting point cloud')
+    chunk.exportPoints(os.path.join(output_path, "PC.las"), binary=True,
+                       precision=6, colors=True, format=PhotoScan.PointsFormatLAS)
 
-#         # Export to Tiff
-#         #chunk.exportOrthomosaic(output_orthomosaic_tiff_path + str(k) + ".tif", image_format=PhotoScan.ImageFormatTIFF, format = PhotoScan.RasterFormatTiles, raster_transform=PhotoScan.RasterTransformNone,tiff_big=True, write_kml=False, write_world=True,write_alpha=True,tiff_compression=PhotoScan.TiffCompressionJPEG,tiff_overviews=True,jpeg_quality=80,projection=Output_projection)
+if cond_exp_dsm == 1:
+    print('exporting dsm')
+    chunk.exportDem(os.path.join(output_path, "DSM.tif"), image_format=PhotoScan.ImageFormatTIFF, tiff_big=True, nodata=-9999, write_kml=False, write_world=True)
 
-#         # Export to KML
-#         #chunk.exportOrthomosaic(output_orthomosaic_KMZ_path + str(k) + ".kmz", image_format=PhotoScan.ImageFormatPNG, format = PhotoScan.RasterFormatKMZ, tiff_compression=PhotoScan.TiffCompressionJPEG,write_kml=True,jpeg_quality=80,write_alpha=True)
+# Export to PNG
+# shutil.copy(output_ortho + str(counter_1) +'.tfw', output_orthomosaic_PNG_path + str(counter_1)  +'.pgw');
+# gdal_translate = gdal.Translate(output_orthomosaic_PNG_path + str(counter_1) +".png", output_orthomosaic_tiff_path + str(counter_1) + ".tif", creationOptions = ['COMPRESS=JPEG','TILED=YES'])
+# shape.boundary_type = PhotoScan.Shape.BoundaryType.NoBoundary
+doc.save()
 
-#         # Export to PNG
-#         #shutil.copy(output_orthomosaic_tiff_path + str(k) +'.tfw', output_orthomosaic_PNG_path + str(k) +'.pgw');
-#         #gdal_translate = gdal.Translate(output_orthomosaic_PNG_path + str(k) + ".png",output_orthomosaic_tiff_path + str(k) + ".tif", creationOptions = ['COMPRESS=JPEG','TILED=YES'])
+print("Finished")
 
-#         # Resetting the boundary
-#         #shape.boundary_type = PhotoScan.Shape.BoundaryType.NoBoundary
-#         del i
-#         # save
-#         doc.save()
-
-#     print("Finished")
-
-#     ################################################################################################
-# PhotoScan.app.quit()
+#################################################################################################
+PhotoScan.app.quit()

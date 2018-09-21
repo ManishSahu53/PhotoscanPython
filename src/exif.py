@@ -13,7 +13,8 @@ def gps_to_decimal(values, reference):
     seconds = eval_frac(values[2])
     return sign*(degrees + minutes / 60 + seconds / 3600)
 
-def get_exif(f):
+def get_exif(file):
+    f = open(file, 'rb')
     tags = exifread.process_file(f, details=False)
     camera = tags['Image Model'].values
     ref_lat = tags['GPS GPSLatitudeRef'].values
