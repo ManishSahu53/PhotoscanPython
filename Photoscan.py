@@ -6,7 +6,7 @@ from tkinter import filedialog
 from tkinter import *
 import tkinter.messagebox as messagebox
 import ntpath
-import gdal
+# import gdal
 import shutil
 import argparse
 from src import defaults as dft
@@ -15,7 +15,12 @@ from src import exif as exf
 from src import convhull as cvh
 from collections import defaultdict
 import argparse
+import numpy as np
+import time
+import csv
 
+# Started timing
+st_time = time.time()
 
 parser = argparse.ArgumentParser(
     'This is used to run Agisoft"s photogrammetric processing. Output will be in UTM format only')
@@ -52,8 +57,8 @@ tk_project = Tk()
 tk_shp = Tk()
 tk_photos = Tk()
 resolution_raster = 0.05  # In Metres
-max_keypoint = 40000
-max_tiepoint = 4000
+max_keypoint, max_tiepoint = dft.def_keypoints()
+timing = {}
 
 # Defining CoordinateSystem
 geographic_projection = PhotoScan.CoordinateSystem(
@@ -85,6 +90,9 @@ if Processing_area == 1:
 
     sf = shapefile.Reader(path_shp)
     num_shp = len(sf.shapes())
+    if num_shp == 0:
+        print('No shape available in shapefile')
+        sys.exit()
 
 # Output paths
 dft_output_path = dft.export_path(
@@ -94,12 +102,17 @@ path_ortho = dft_output_path[0]
 path_dsm = dft_output_path[1]
 path_pc = dft_output_path[2]
 path_mesh = dft_output_path[3]
+path_report = dft_output_path[4]
+path_timing = dft_output_path[5]
 
 # Logging to file
 gn.log2file(project_path, project_name)
 
 # photo_list = defaultdict(list)
 photo_list = []
+
+# Reading images time
+st_read_image = time.time()
 
 for path, subdirs, files in os.walk(path_photos):
     for name in files:
@@ -111,6 +124,11 @@ for path, subdirs, files in os.walk(path_photos):
 
 chunk = doc.addChunk()
 chunk.label = '1'
+
+# Ended reading images time
+end_read_image = time.time()
+timing['Reading Images'] = str(
+    round(end_read_image - st_read_image, 0)) + ' sec'
 
 # # Activate chunk
 # doc.chunk = doc.chunks
@@ -148,19 +166,37 @@ if Processing_area == 1:
 doc.save()
 print("Saving Agisoft Project")
 
+# Start Aligning photos time
+st_align = time.time()
+
 # Align photos
 chunk.matchPhotos(accuracy=PhotoScan.HighAccuracy, generic_preselection=True,
                   filter_mask=False, keypoint_limit=max_keypoint, tiepoint_limit=max_tiepoint)
 chunk.alignCameras()
 chunk.optimizeCameras()
 
+# End Aligning photos time
+end_align = time.time()
+timing['SFM'] = str(round(end_align - st_align, 0)) + ' sec'
+
+# gn.show_points_info(chunk)
+# Image Quality
+# print(gn.get_quality(chunk))
+
 # saving images
 doc.save()
+
+# starting MVS time
+st_dense = time.time()
 
 # build dense cloud
 chunk.buildDepthMaps(quality=PhotoScan.MediumQuality,
                      filter=PhotoScan.AggressiveFiltering, reuse_depth=True)
 chunk.buildDenseCloud()
+
+# Ending Dense PC
+end_dense = time.time()
+timing['PointCloud'] = str(round(end_dense - st_dense, 0)) + ' sec'
 
 # save
 doc.save()
@@ -168,17 +204,29 @@ doc.save()
 # build mesh
 # chunk.buildModel(surface = PhotoScan.HeightField, interpolation = PhotoScan.EnabledInterpolation, face_count=PhotoScan.MediumFaceCount )
 
+# Starting DEM
+st_dem = time.time()
+
 # Build DEM
 chunk.buildDem(source=PhotoScan.DenseCloudData,
                interpolation=PhotoScan.EnabledInterpolation, projection=output_projection)
+# Ending DEM
+end_dem = time.time()
+timing['DEM'] = str(round(end_dem - st_dem, 0)) + ' sec'
 
 # save
 doc.save()
+
+# Starting ortho
+st_ortho = time.time()
 
 # Build Ortho
 chunk.buildOrthomosaic(surface=PhotoScan.ElevationData, blending=PhotoScan.MosaicBlending,
                        fill_holes=True, dx=resolution_raster, dy=resolution_raster)
 
+# Ending Orthomosaic
+end_ortho = time.time()
+timing['OrthoMosaic'] = str(round(end_ortho - st_ortho, 0)) + ' sec'
 
 doc.save()
 
@@ -191,21 +239,50 @@ doc.save()
 # Exporting
 if cond_exp_ortho == 1:
     print('exporting orthomosaic')
+
+    # starting exporting time
+    st_export_ortho = time.time()
+
     chunk.exportOrthomosaic(os.path.join(path_ortho, "ortho.tif"), image_format=PhotoScan.ImageFormatTIFF, format=PhotoScan.RasterFormatTiles,
                             raster_transform=PhotoScan.RasterTransformNone, tiff_big=True,
                             write_kml=False, write_world=True, write_alpha=True, tiff_compression=PhotoScan.TiffCompressionLZW,
                             tiff_overviews=True, jpeg_quality=80, projection=output_projection)
 
+    # Ending exporting time
+    end_export_ortho = time.time()
+    timing['Export_Ortho'] = str(
+        round(end_export_ortho - st_export_ortho, 0)) + ' sec'
+
+
 if cond_exp_pc == 1:
     print('exporting point cloud')
+
+    # starting exporting time
+    st_export_pc = time.time()
+
     chunk.exportPoints(os.path.join(path_pc, "PC.las"), binary=True,
                        precision=6, colors=True, format=PhotoScan.PointsFormatLAS,
                        projection=output_projection)
 
+    # Ending exporting time
+    end_export_pc = time.time()
+    timing['Export_PointCloud'] = str(
+        round(end_export_pc - st_export_pc, 0)) + ' sec'
+
+
 if cond_exp_dsm == 1:
     print('exporting dsm')
+
+    # starting exporting time
+    st_export_dem = time.time()
+
     chunk.exportDem(os.path.join(path_dsm, "DSM.tif"), image_format=PhotoScan.ImageFormatTIFF,
                     tiff_big=True, nodata=-9999, write_kml=False, write_world=True)
+
+    # Ending exporting time
+    end_export_dem = time.time()
+    timing['Export_DEM'] = str(
+        round(end_export_dem - st_export_dem, 0)) + ' sec'
 
 # Export to PNG
 # shutil.copy(output_ortho + str(counter_1) +'.tfw', output_orthomosaic_PNG_path + str(counter_1)  +'.pgw');
@@ -213,6 +290,12 @@ if cond_exp_dsm == 1:
 # shape.boundary_type = PhotoScan.Shape.BoundaryType.NoBoundary
 doc.save()
 
+# Exporting timings to file
+print(timing)
+gn.tojson(timing, os.path.join(path_timing, 'Timing.json'))
+
+# Export report
+chunk.exportReport(path = path_report, title = 'Processing Report')
 print("Finished")
 
 #################################################################################################

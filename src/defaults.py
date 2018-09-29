@@ -30,13 +30,16 @@ def export_path(output_path):
     path_dsm = os.path.join(output_path, 'dsm')
     path_pc = os.path.join(output_path, 'pointcloud')
     path_mesh = os.path.join(output_path, 'mesh')
+    path_report = os.path.join(output_path,'report')
+    path_timing = output_path
 
     create_dir(path_ortho)
     create_dir(path_dsm)
     create_dir(path_pc)
     create_dir(path_mesh)
-    return [path_ortho, path_dsm, path_pc, path_mesh]
+    return [path_ortho, path_dsm, path_pc, path_mesh, path_report, path_timing]
 
-
-max_keypoint = 40000
-max_tiepoint = 4000
+def def_keypoints():
+    max_keypoint = 40000
+    max_tiepoint = 4000
+    return max_keypoint, max_tiepoint
