@@ -20,6 +20,7 @@ import numpy as np
 import time
 import csv
 
+logger = gn.get_logger('Processing')
 # Started timing
 st_time = time.time()
 
@@ -66,22 +67,26 @@ geographic_projection = PhotoScan.CoordinateSystem(
     'EPSG::4326')  # WGS Geographic Coordinatee System
 
 # Project Directory
-project_path = filedialog.askdirectory(
-    initialdir='/', title='Select Location to save project')
+# project_path = filedialog.askdirectory(
+#     initialdir='/', title='Select Location to save project')
 
-# project_path = 'E:/Testing/output'
+project_path = 'E:/Testing/output'
+logger.debug('Project path : ' + project_path)
 
 # Project Name
-project_name = PhotoScan.app.getExistingDirectory(
-    'Enter name of the project: ')
+# project_name = PhotoScan.app.getExistingDirectory(
+#     'Enter name of the project: ')
 
-# project_name = 'test'
+project_name = 'test'
+logger.debug('Project name : ' + project_name)
 
 # Reading Photos Location
-path_photos = filedialog.askdirectory(
-    initialdir='/', title='Select photos location')
+# path_photos = filedialog.askdirectory(
+#     initialdir='/', title='Select photos location')
 
-# path_photos = 'E:/Testing/Images'
+path_photos = 'E:/Testing/Images'
+logger.debug('Project image location is : ' + path_photos)
+
 doc.save(os.path.join(project_path, project_name+'.psx'))
 
 # Sub_Projects=gn.booldialogbox("Do you want to create sub-projects?")
@@ -97,7 +102,7 @@ if Processing_area == 1:
     sf = shapefile.Reader(path_shp)
     num_shp = len(sf.shapes())
     if num_shp == 0:
-        print('No shape available in shapefile')
+        logger.debug('No shape available in shapefile')
         sys.exit()
 
 # Output paths
@@ -130,7 +135,7 @@ for path, subdirs, files in os.walk(path_photos):
                 photo_list.append(image)
 
 mapplot.gen_map_plotly(photo_list, path_imlo)
-
+logger.debug('Map Plotted')
 
 chunk = doc.addChunk()
 chunk.label = '1'
@@ -174,7 +179,7 @@ if Processing_area == 1:
 
 # PhotoScan.Shape.BoundaryType.OuterBoundary
 doc.save()
-print("Saving Agisoft Project")
+logger.debug("Saving Agisoft Project")
 
 # Start Aligning photos time
 st_align = time.time()
@@ -188,6 +193,7 @@ chunk.optimizeCameras()
 # End Aligning photos time
 end_align = time.time()
 timing['SFM'] = str(round(end_align - st_align, 0)) + ' sec'
+logger.debug('SFM Completed in : ' + timing['SFM'])
 
 # gn.show_points_info(chunk)
 # Image Quality
@@ -207,6 +213,7 @@ chunk.buildDenseCloud()
 # Ending Dense PC
 end_dense = time.time()
 timing['PointCloud'] = str(round(end_dense - st_dense, 0)) + ' sec'
+logger.debug('Dense Point Cloud Completed in : ' + timing['PointCloud'])
 
 # save
 doc.save()
@@ -223,6 +230,7 @@ chunk.buildDem(source=PhotoScan.DenseCloudData,
 # Ending DEM
 end_dem = time.time()
 timing['DEM'] = str(round(end_dem - st_dem, 0)) + ' sec'
+logger.debug('DEM Completed in : ' + timing['DEM'])
 
 # save
 doc.save()
@@ -237,6 +245,7 @@ chunk.buildOrthomosaic(surface=PhotoScan.ElevationData, blending=PhotoScan.Mosai
 # Ending Orthomosaic
 end_ortho = time.time()
 timing['OrthoMosaic'] = str(round(end_ortho - st_ortho, 0)) + ' sec'
+logger.debug('OrthoMosaic Completed in : ' + timing['OrthoMosaic'])
 
 doc.save()
 
@@ -248,7 +257,7 @@ doc.save()
 
 # Exporting
 if cond_exp_ortho == 1:
-    print('exporting orthomosaic')
+    logger.debug('exporting orthomosaic')
 
     # starting exporting time
     st_export_ortho = time.time()
@@ -262,10 +271,12 @@ if cond_exp_ortho == 1:
     end_export_ortho = time.time()
     timing['Export_Ortho'] = str(
         round(end_export_ortho - st_export_ortho, 0)) + ' sec'
+    logger.debug('Export_Ortho Completed in : ' + timing['Export_Ortho'])
+
 
 
 if cond_exp_pc == 1:
-    print('exporting point cloud')
+    logger.debug('exporting point cloud')
 
     # starting exporting time
     st_export_pc = time.time()
@@ -278,10 +289,11 @@ if cond_exp_pc == 1:
     end_export_pc = time.time()
     timing['Export_PointCloud'] = str(
         round(end_export_pc - st_export_pc, 0)) + ' sec'
+    logger.debug('Export_PointCloud Completed in : ' + timing['Export_PointCloud'])
 
 
 if cond_exp_dsm == 1:
-    print('exporting dsm')
+    logger.debug('exporting dsm')
 
     # starting exporting time
     st_export_dem = time.time()
@@ -293,6 +305,7 @@ if cond_exp_dsm == 1:
     end_export_dem = time.time()
     timing['Export_DEM'] = str(
         round(end_export_dem - st_export_dem, 0)) + ' sec'
+    logger.debug('Export_DEM Completed in : ' + timing['Export_DEM'])
 
 # Export to PNG
 # shutil.copy(output_ortho + str(counter_1) +'.tfw', output_orthomosaic_PNG_path + str(counter_1)  +'.pgw');
@@ -302,11 +315,14 @@ doc.save()
 
 # Exporting timings to file
 print(timing)
+logger.debug(timing)
+
 gn.tojson(timing, os.path.join(path_timing, 'Timing.json'))
 
 # Export report
 chunk.exportReport(path=path_report, title='Processing Report')
 print("Finished")
+logger.debug('Finished')
 
 #################################################################################################
 PhotoScan.app.quit()

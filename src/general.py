@@ -9,6 +9,9 @@ import PhotoScan
 import json
 import csv
 
+def get_logger(name):
+    return logging.getLogger(name)
+
 def tocsv(dictA, file_csv):
     with open(file_csv,'wb') as f:
         w = csv.writer(f)
