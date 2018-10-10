@@ -21,7 +21,7 @@ def im2map(lat, long, project_name):
     _long = np.asarray(long)
 
     avg_lat = np.mean(_lat)
-    avg_long = npp.mean(_long)
+    avg_long = np.mean(_long)
 
     map_options = GMapOptions(
         lat=avg_lat, lng=avg_long, map_type="roadmap", zoom=11)

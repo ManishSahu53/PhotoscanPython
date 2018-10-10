@@ -13,6 +13,7 @@ from src import defaults as dft
 from src import general as gn
 from src import exif as exf
 from src import convhull as cvh
+from src import map_plotly as mapplot
 from collections import defaultdict
 import argparse
 import numpy as np
@@ -68,14 +69,19 @@ geographic_projection = PhotoScan.CoordinateSystem(
 project_path = filedialog.askdirectory(
     initialdir='/', title='Select Location to save project')
 
+# project_path = 'E:/Testing/output'
+
 # Project Name
 project_name = PhotoScan.app.getExistingDirectory(
     'Enter name of the project: ')
+
+# project_name = 'test'
 
 # Reading Photos Location
 path_photos = filedialog.askdirectory(
     initialdir='/', title='Select photos location')
 
+# path_photos = 'E:/Testing/Images'
 doc.save(os.path.join(project_path, project_name+'.psx'))
 
 # Sub_Projects=gn.booldialogbox("Do you want to create sub-projects?")
@@ -104,6 +110,7 @@ path_pc = dft_output_path[2]
 path_mesh = dft_output_path[3]
 path_report = dft_output_path[4]
 path_timing = dft_output_path[5]
+path_imlo = dft_output_path[6]
 
 # Logging to file
 gn.log2file(project_path, project_name)
@@ -121,6 +128,9 @@ for path, subdirs, files in os.walk(path_photos):
             if fileExt == format_im[k]:
                 image = os.path.join(path_photos, name)
                 photo_list.append(image)
+
+mapplot.gen_map_plotly(photo_list, path_imlo)
+
 
 chunk = doc.addChunk()
 chunk.label = '1'
@@ -295,7 +305,7 @@ print(timing)
 gn.tojson(timing, os.path.join(path_timing, 'Timing.json'))
 
 # Export report
-chunk.exportReport(path = path_report, title = 'Processing Report')
+chunk.exportReport(path=path_report, title='Processing Report')
 print("Finished")
 
 #################################################################################################
