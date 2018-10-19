@@ -11,7 +11,7 @@ import shutil
 import argparse
 from src import defaults as dft
 from src import general as gn
-from src import exif as exf
+# from src import exif as exf
 from src import convhull as cvh
 from src import map_plotly as mapplot
 from collections import defaultdict
