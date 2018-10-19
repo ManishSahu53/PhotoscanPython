@@ -24,11 +24,11 @@ st_time = time.time()
 parser = argparse.ArgumentParser(
     'This is used to run Agisoft"s photogrammetric processing. Output will be in UTM format only')
 
-parser.add_argument('-or', '--ortho', help='Process and output orthomosaic',
+parser.add_argument('-or', '--ortho', help='Process and output orthomosaic?, [Default] is true',
                     required=False, default=1,  type=int)
-parser.add_argument('-dsm', '--dsmodel', help='Process and output Digital Surface Model',
+parser.add_argument('-dsm', '--dsmodel', help='Process and output Digital Surface Model?, [Default] is true',
                     required=False, default=1,  type=int)
-parser.add_argument('-pc', '--pointcloud', help='Process and output Point Cloud',
+parser.add_argument('-pc', '--pointcloud', help='Process and output Point Cloud?, [Default] is false',
                     required=False, default=0,  type=int)
 
 parser.add_argument('-i', '--input', help='Provide input folder of images',
@@ -37,7 +37,7 @@ parser.add_argument('-i', '--input', help='Provide input folder of images',
 parser.add_argument('-o', '--output', help='Provide output folder of project',
                     required=True)
 
-parser.add_argument('-shp', '--shape', help='Provide input shp file',
+parser.add_argument('-shp', '--shape', help='Provide input shp file, [Default] no shp is provided',
                     required=False, default=0)
 
 parser.add_argument('-n', '--name', help='Provide project name',
@@ -166,7 +166,7 @@ for camera in chunk.cameras:
 output_projection = PhotoScan.CoordinateSystem(
     gn.get_epsg(coord[1], coord[0]))  # UTM Projected Coordinate System
 
-if Processing_area == 1:
+if path_shape != 0:
     # ,boundary_type=PhotoScan.Shape.BoundaryType.OuterBoundary)
     chunk.importShapes(path=path_shp)
 
