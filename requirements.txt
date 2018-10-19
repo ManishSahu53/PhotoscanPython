@@ -1,0 +1,7 @@
+pyshp
+numpy
+math
+json
+utm
+plotly
+exifread
