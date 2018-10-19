@@ -67,24 +67,24 @@ geographic_projection = PhotoScan.CoordinateSystem(
     'EPSG::4326')  # WGS Geographic Coordinatee System
 
 # Project Directory
-# project_path = filedialog.askdirectory(
-#     initialdir='/', title='Select Location to save project')
+project_path = filedialog.askdirectory(
+    initialdir='/', title='Select Location to save project')
 
-project_path = 'E:/Testing/output'
+# project_path = 'E:/Testing/output'
 logger.debug('Project path : ' + project_path)
 
 # Project Name
-# project_name = PhotoScan.app.getExistingDirectory(
-#     'Enter name of the project: ')
+project_name = PhotoScan.app.getExistingDirectory(
+    'Enter name of the project: ')
 
-project_name = 'test'
+# project_name = 'test'
 logger.debug('Project name : ' + project_name)
 
 # Reading Photos Location
-# path_photos = filedialog.askdirectory(
-#     initialdir='/', title='Select photos location')
+path_photos = filedialog.askdirectory(
+    initialdir='/', title='Select photos location')
 
-path_photos = 'E:/Testing/Images'
+# path_photos = 'E:/Testing/Images'
 logger.debug('Project image location is : ' + path_photos)
 
 doc.save(os.path.join(project_path, project_name+'.psx'))
