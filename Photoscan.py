@@ -11,7 +11,7 @@ import shutil
 import argparse
 from src import defaults as dft
 from src import general as gn
-from src import exif as exf
+# from src import exif as exf
 from src import convhull as cvh
 from src import map_plotly as mapplot
 from collections import defaultdict
@@ -68,21 +68,34 @@ geographic_projection = PhotoScan.CoordinateSystem(
 
 # Project Directory
 project_path = filedialog.askdirectory(
+<<<<<<< HEAD
     initialdir='/', title='Select Location to save project')
+=======
+     initialdir='/', title='Select Location to save project')
+>>>>>>> develop
 
 # project_path = 'E:/Testing/output'
 logger.debug('Project path : ' + project_path)
 
 # Project Name
+<<<<<<< HEAD
 project_name = PhotoScan.app.getExistingDirectory(
     'Enter name of the project: ')
+=======
+ project_name = PhotoScan.app.getExistingDirectory(
+     'Enter name of the project: ')
+>>>>>>> develop
 
 # project_name = 'test'
 logger.debug('Project name : ' + project_name)
 
 # Reading Photos Location
 path_photos = filedialog.askdirectory(
+<<<<<<< HEAD
     initialdir='/', title='Select photos location')
+=======
+     initialdir='/', title='Select photos location')
+>>>>>>> develop
 
 # path_photos = 'E:/Testing/Images'
 logger.debug('Project image location is : ' + path_photos)

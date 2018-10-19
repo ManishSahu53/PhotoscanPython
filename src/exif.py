@@ -23,3 +23,7 @@ def get_exif(file):
     long = gps_to_decimal(tags["GPS GPSLongitude"].values, ref_long)
     ele = eval_frac(tags["GPS GPSAltitude"].values[0])
     return lat, long, ele
+<<<<<<< HEAD
+=======
+
+>>>>>>> develop

@@ -1,0 +1,5 @@
+pyshp
+numpy
+utm
+plotly
+exifread
