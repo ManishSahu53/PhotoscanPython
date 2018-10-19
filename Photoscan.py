@@ -68,21 +68,21 @@ geographic_projection = PhotoScan.CoordinateSystem(
 
 # Project Directory
 project_path = filedialog.askdirectory(
-     initialdir='/', title='Select Location to save project')
+    initialdir='/', title='Select Location to save project')
 
 # project_path = 'E:/Testing/output'
 logger.debug('Project path : ' + project_path)
 
 # Project Name
- project_name = PhotoScan.app.getExistingDirectory(
-     'Enter name of the project: ')
+project_name = PhotoScan.app.getExistingDirectory(
+    'Enter name of the project: ')
 
 # project_name = 'test'
 logger.debug('Project name : ' + project_name)
 
 # Reading Photos Location
 path_photos = filedialog.askdirectory(
-     initialdir='/', title='Select photos location')
+    initialdir='/', title='Select photos location')
 
 # path_photos = 'E:/Testing/Images'
 logger.debug('Project image location is : ' + path_photos)
@@ -274,7 +274,6 @@ if cond_exp_ortho == 1:
     logger.debug('Export_Ortho Completed in : ' + timing['Export_Ortho'])
 
 
-
 if cond_exp_pc == 1:
     logger.debug('exporting point cloud')
 
@@ -289,7 +288,8 @@ if cond_exp_pc == 1:
     end_export_pc = time.time()
     timing['Export_PointCloud'] = str(
         round(end_export_pc - st_export_pc, 0)) + ' sec'
-    logger.debug('Export_PointCloud Completed in : ' + timing['Export_PointCloud'])
+    logger.debug('Export_PointCloud Completed in : ' +
+                 timing['Export_PointCloud'])
 
 
 if cond_exp_dsm == 1:
