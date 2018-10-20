@@ -58,6 +58,14 @@ path_shape = args.shape
 # Initialising photoscan project
 doc = PhotoScan.app.document
 
+# Checking Graphic cards
+gpu_info = PhotoScan.app.enumGPUDevices()
+PhotoScan.app.gpu_mask = 1
+
+print('Number of GPUs : ' + str(len(gpu_info)))
+for g in range(len(gpu_info)):
+    print(gpu_info[g]['name'])
+
 # Default formats
 dft_format = dft.export_format()
 
@@ -89,7 +97,7 @@ logger.debug('Project name : ' + project_name)
 # path_photos = 'E:/Testing/Images'
 logger.debug('Project image location is : ' + path_photos)
 
-doc.save(os.path.join(path_project, project_name+'.psx'))
+# doc.save(os.path.join(path_project, project_name+'.psx'))
 
 # Sub_Projects=gn.booldialogbox("Do you want to create sub-projects?")
 # Processing_area = gn.booldialogbox("Do you want to enter processing area?")
@@ -151,7 +159,7 @@ chunk.crs = geographic_projection
 chunk.updateTransform()
 chunk.addPhotos(photo_list)
 
-doc.save()
+# doc.save()
 
 # Loop Start
 
@@ -176,7 +184,7 @@ if path_shape != 0:
             shape.boundary_type = PhotoScan.Shape.BoundaryType.OuterBoundary
 
 # PhotoScan.Shape.BoundaryType.OuterBoundary
-doc.save()
+# doc.save()
 logger.debug("Saving Agisoft Project")
 
 # Start Aligning photos time
@@ -198,7 +206,7 @@ logger.debug('SFM Completed in : ' + timing['SFM'])
 # print(gn.get_quality(chunk))
 
 # saving images
-doc.save()
+# doc.save()
 
 # starting MVS time
 st_dense = time.time()
@@ -214,7 +222,7 @@ timing['PointCloud'] = str(round(end_dense - st_dense, 0)) + ' sec'
 logger.debug('Dense Point Cloud Completed in : ' + timing['PointCloud'])
 
 # save
-doc.save()
+# doc.save()
 
 # build mesh
 # chunk.buildModel(surface = PhotoScan.HeightField, interpolation = PhotoScan.EnabledInterpolation, face_count=PhotoScan.MediumFaceCount )
@@ -231,7 +239,7 @@ timing['DEM'] = str(round(end_dem - st_dem, 0)) + ' sec'
 logger.debug('DEM Completed in : ' + timing['DEM'])
 
 # save
-doc.save()
+# doc.save()
 
 # Starting ortho
 st_ortho = time.time()
@@ -245,7 +253,7 @@ end_ortho = time.time()
 timing['OrthoMosaic'] = str(round(end_ortho - st_ortho, 0)) + ' sec'
 logger.debug('OrthoMosaic Completed in : ' + timing['OrthoMosaic'])
 
-doc.save()
+# doc.save()
 
 
 # # Defining Directories
@@ -309,7 +317,7 @@ if cond_exp_dsm == 1:
 # shutil.copy(output_ortho + str(counter_1) +'.tfw', output_orthomosaic_PNG_path + str(counter_1)  +'.pgw');
 # gdal_translate = gdal.Translate(output_orthomosaic_PNG_path + str(counter_1) +".png", output_orthomosaic_tiff_path + str(counter_1) + ".tif", creationOptions = ['COMPRESS=JPEG','TILED=YES'])
 # shape.boundary_type = PhotoScan.Shape.BoundaryType.NoBoundary
-doc.save()
+# doc.save()
 
 # Exporting timings to file
 print(timing)
