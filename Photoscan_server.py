@@ -55,281 +55,290 @@ project_name = args.name
 path_photos = args.input
 path_shape = args.shape
 
-# Initialising photoscan project
-doc = PhotoScan.app.document
-
-# Checking Graphic cards
-gpu_info = PhotoScan.app.enumGPUDevices()
-PhotoScan.app.gpu_mask = 1
 
-print('Number of GPUs : ' + str(len(gpu_info)))
-for g in range(len(gpu_info)):
-    print(gpu_info[g]['name'])
+def main():
+    # Initialising photoscan project
+    doc = PhotoScan.app.document
+
+    # Checking Graphic cards
+    gpu_info = PhotoScan.app.enumGPUDevices()
+    PhotoScan.app.gpu_mask = 1
 
-# Default formats
-dft_format = dft.export_format()
-
-format_im = dft_format[0]
-format_ortho = dft_format[1]
-format_dsm = dft_format[2]
-format_pc = dft_format[3]
-format_mesh = dft_format[4]
+    print('Number of GPUs : ' + str(len(gpu_info)))
+    for g in range(len(gpu_info)):
+        print(gpu_info[g]['name'])
 
+    # Default formats
+    dft_format = dft.export_format()
+
+    format_im = dft_format[0]
+    format_ortho = dft_format[1]
+    format_dsm = dft_format[2]
+    format_pc = dft_format[3]
+    format_mesh = dft_format[4]
+
+    # Set tkinter and variables
+    resolution_raster = 0.05  # In Metres
+    max_keypoint, max_tiepoint = dft.def_keypoints()
+    timing = {}
+
+    # Defining CoordinateSystem
+    coordinate_system = 'EPSG::4326'
+    geographic_projection = PhotoScan.CoordinateSystem(
+        coordinate_system)  # WGS Geographic Coordinatee System
+
+    logger.debug('CoordinateSystem : ' + coordinate_system)
+
+    # path_project = 'E:/Testing/output'
+    logger.debug('Project path : ' + path_project)
 
-# Set tkinter and variables
-resolution_raster = 0.05  # In Metres
-max_keypoint, max_tiepoint = dft.def_keypoints()
-timing = {}
-
-# Defining CoordinateSystem
-coordinate_system = 'EPSG::4326'
-geographic_projection = PhotoScan.CoordinateSystem(
-    coordinate_system)  # WGS Geographic Coordinatee System
-
-logger.debug('CoordinateSystem : ' + coordinate_system)
+    # project_name = 'test'
+    logger.debug('Project name : ' + project_name)
+
+    # path_photos = 'E:/Testing/Images'
+    logger.debug('Project image location is : ' + path_photos)
+
+    # doc.save(os.path.join(path_project, project_name+'.psx'))
+
+    # Sub_Projects=gn.booldialogbox("Do you want to create sub-projects?")
+    # Processing_area = gn.booldialogbox("Do you want to enter processing area?")
+
+    # Processing area if given
+    if path_shape != 0:
+        # Reading Shapefiles
+        sf = shapefile.Reader(path_shp)
+        num_shp = len(sf.shapes())
+        if num_shp == 0:
+            logger.debug('No shape available in shapefile')
+            sys.exit()
+
+    # Output paths
+    dft_output_path = dft.export_path(
+        os.path.join(path_project, 'output', project_name))
+
+    path_ortho = dft_output_path[0]
+    path_dsm = dft_output_path[1]
+    path_pc = dft_output_path[2]
+    path_mesh = dft_output_path[3]
+    path_report = dft_output_path[4]
+    path_timing = dft_output_path[5]
+    path_imlo = dft_output_path[6]
+
+    # Logging to file
+    gn.log2file(path_project, project_name)
+
+    # photo_list = defaultdict(list)
+    photo_list = []
+
+    # Reading images time
+    st_read_image = time.time()
+
+    for path, subdirs, files in os.walk(path_photos):
+        for name in files:
+            for k in range(len(format_im)):
+                fileExt = os.path.splitext(name)[-1]
+                if fileExt == format_im[k]:
+                    image = os.path.join(path_photos, name)
+                    photo_list.append(image)
+
+    mapplot.gen_map_plotly(photo_list, path_imlo)
+    logger.debug('Map Plotted')
+
+    chunk = doc.addChunk()
+    chunk.label = '1'
+
+    # Ended reading images time
+    end_read_image = time.time()
+    timing['Reading Images'] = str(
+        round(end_read_image - st_read_image, 0)) + ' sec'
+
+    # # Activate chunk
+    # doc.chunk = doc.chunks
+
+    # Set Coordinate System
+    chunk.crs = geographic_projection
+    chunk.updateTransform()
+    chunk.addPhotos(photo_list)
 
-# path_project = 'E:/Testing/output'
-logger.debug('Project path : ' + path_project)
+    # doc.save()
 
-# project_name = 'test'
-logger.debug('Project name : ' + project_name)
-
-# path_photos = 'E:/Testing/Images'
-logger.debug('Project image location is : ' + path_photos)
-
-# doc.save(os.path.join(path_project, project_name+'.psx'))
-
-# Sub_Projects=gn.booldialogbox("Do you want to create sub-projects?")
-# Processing_area = gn.booldialogbox("Do you want to enter processing area?")
-
-# Processing area if given
-if path_shape != 0:
-    # Reading Shapefiles
-    sf = shapefile.Reader(path_shp)
-    num_shp = len(sf.shapes())
-    if num_shp == 0:
-        logger.debug('No shape available in shapefile')
-        sys.exit()
-
-# Output paths
-dft_output_path = dft.export_path(
-    os.path.join(path_project, 'output', project_name))
-
-path_ortho = dft_output_path[0]
-path_dsm = dft_output_path[1]
-path_pc = dft_output_path[2]
-path_mesh = dft_output_path[3]
-path_report = dft_output_path[4]
-path_timing = dft_output_path[5]
-path_imlo = dft_output_path[6]
-
-# Logging to file
-gn.log2file(path_project, project_name)
-
-# photo_list = defaultdict(list)
-photo_list = []
-
-# Reading images time
-st_read_image = time.time()
+    # Loop Start
 
-for path, subdirs, files in os.walk(path_photos):
-    for name in files:
-        for k in range(len(format_im)):
-            fileExt = os.path.splitext(name)[-1]
-            if fileExt == format_im[k]:
-                image = os.path.join(path_photos, name)
-                photo_list.append(image)
-
-mapplot.gen_map_plotly(photo_list, path_imlo)
-logger.debug('Map Plotted')
-
-chunk = doc.addChunk()
-chunk.label = '1'
-
-# Ended reading images time
-end_read_image = time.time()
-timing['Reading Images'] = str(
-    round(end_read_image - st_read_image, 0)) + ' sec'
-
-# # Activate chunk
-# doc.chunk = doc.chunks
-
-# Set Coordinate System
-chunk.crs = geographic_projection
-chunk.updateTransform()
-chunk.addPhotos(photo_list)
+    # Adding Exif data Lat, Long, Elevation to each Camera
+    for camera in chunk.cameras:
+        if camera.reference.location:
+            coord = camera.reference.location
+            camera.reference.location = PhotoScan.Vector(
+                [coord[0], coord[1], coord[2]])
 
-# doc.save()
+    # Output Projection System
+    output_projection = PhotoScan.CoordinateSystem(
+        gn.get_epsg(coord[1], coord[0]))  # UTM Projected Coordinate System
 
-# Loop Start
+    if path_shape != 0:
+        # ,boundary_type=PhotoScan.Shape.BoundaryType.OuterBoundary)
+        chunk.importShapes(path=path_shp)
+
+        print(chunk.shapes)
+        for shape in chunk.shapes:
+            if shape.type == PhotoScan.Shape.Type.Polygon:
+                shape.boundary_type = PhotoScan.Shape.BoundaryType.OuterBoundary
 
-# Adding Exif data Lat, Long, Elevation to each Camera
-for camera in chunk.cameras:
-    if camera.reference.location:
-        coord = camera.reference.location
-        camera.reference.location = PhotoScan.Vector(
-            [coord[0], coord[1], coord[2]])
+    # PhotoScan.Shape.BoundaryType.OuterBoundary
+    # doc.save()
+    logger.debug("Saving Agisoft Project")
 
-# Output Projection System
-output_projection = PhotoScan.CoordinateSystem(
-    gn.get_epsg(coord[1], coord[0]))  # UTM Projected Coordinate System
+    # Start Aligning photos time
+    st_align = time.time()
 
-if path_shape != 0:
-    # ,boundary_type=PhotoScan.Shape.BoundaryType.OuterBoundary)
-    chunk.importShapes(path=path_shp)
+    # Align photos
+    chunk.matchPhotos(accuracy=PhotoScan.HighAccuracy, generic_preselection=True,
+                      filter_mask=False, keypoint_limit=max_keypoint, tiepoint_limit=max_tiepoint)
+    chunk.alignCameras()
+    chunk.optimizeCameras()
+
+    # End Aligning photos time
+    end_align = time.time()
+    timing['SFM'] = str(round(end_align - st_align, 0)) + ' sec'
+    logger.debug('SFM Completed in : ' + timing['SFM'])
+
+    # gn.show_points_info(chunk)
+    # Image Quality
+    # print(gn.get_quality(chunk))
 
-    print(chunk.shapes)
-    for shape in chunk.shapes:
-        if shape.type == PhotoScan.Shape.Type.Polygon:
-            shape.boundary_type = PhotoScan.Shape.BoundaryType.OuterBoundary
+    # saving images
+    # doc.save()
+
+    # starting MVS time
+    st_dense = time.time()
 
-# PhotoScan.Shape.BoundaryType.OuterBoundary
-# doc.save()
-logger.debug("Saving Agisoft Project")
-
-# Start Aligning photos time
-st_align = time.time()
-
-# Align photos
-chunk.matchPhotos(accuracy=PhotoScan.HighAccuracy, generic_preselection=True,
-                  filter_mask=False, keypoint_limit=max_keypoint, tiepoint_limit=max_tiepoint)
-chunk.alignCameras()
-chunk.optimizeCameras()
-
-# End Aligning photos time
-end_align = time.time()
-timing['SFM'] = str(round(end_align - st_align, 0)) + ' sec'
-logger.debug('SFM Completed in : ' + timing['SFM'])
-
-# gn.show_points_info(chunk)
-# Image Quality
-# print(gn.get_quality(chunk))
-
-# saving images
-# doc.save()
-
-# starting MVS time
-st_dense = time.time()
-
-# build dense cloud
-chunk.buildDepthMaps(quality=PhotoScan.MediumQuality,
-                     filter=PhotoScan.AggressiveFiltering, reuse_depth=True)
-chunk.buildDenseCloud()
-
-# Ending Dense PC
-end_dense = time.time()
-timing['PointCloud'] = str(round(end_dense - st_dense, 0)) + ' sec'
-logger.debug('Dense Point Cloud Completed in : ' + timing['PointCloud'])
-
-# save
-# doc.save()
-
-# build mesh
-# chunk.buildModel(surface = PhotoScan.HeightField, interpolation = PhotoScan.EnabledInterpolation, face_count=PhotoScan.MediumFaceCount )
-
-# Starting DEM
-st_dem = time.time()
-
-# Build DEM
-chunk.buildDem(source=PhotoScan.DenseCloudData,
-               interpolation=PhotoScan.EnabledInterpolation, projection=output_projection)
-# Ending DEM
-end_dem = time.time()
-timing['DEM'] = str(round(end_dem - st_dem, 0)) + ' sec'
-logger.debug('DEM Completed in : ' + timing['DEM'])
-
-# save
-# doc.save()
-
-# Starting ortho
-st_ortho = time.time()
-
-# Build Ortho
-chunk.buildOrthomosaic(surface=PhotoScan.ElevationData, blending=PhotoScan.MosaicBlending,
-                       fill_holes=True, dx=resolution_raster, dy=resolution_raster)
-
-# Ending Orthomosaic
-end_ortho = time.time()
-timing['OrthoMosaic'] = str(round(end_ortho - st_ortho, 0)) + ' sec'
-logger.debug('OrthoMosaic Completed in : ' + timing['OrthoMosaic'])
-
-# doc.save()
-
-
-# # Defining Directories
-# output_path = os.path.join(path_project, 'output', project_name)
-
-# gn.create_dir(output_path)
-
-# Exporting
-if cond_exp_ortho == 1:
-    logger.debug('exporting orthomosaic')
-
-    # starting exporting time
-    st_export_ortho = time.time()
-
-    chunk.exportOrthomosaic(os.path.join(path_ortho, "ortho.tif"), image_format=PhotoScan.ImageFormatTIFF, format=PhotoScan.RasterFormatTiles,
-                            raster_transform=PhotoScan.RasterTransformNone, tiff_big=True,
-                            write_kml=False, write_world=True, write_alpha=True, tiff_compression=PhotoScan.TiffCompressionLZW,
-                            tiff_overviews=True, jpeg_quality=80, projection=output_projection)
-
-    # Ending exporting time
-    end_export_ortho = time.time()
-    timing['Export_Ortho'] = str(
-        round(end_export_ortho - st_export_ortho, 0)) + ' sec'
-    logger.debug('Export_Ortho Completed in : ' + timing['Export_Ortho'])
-
-
-if cond_exp_pc == 1:
-    logger.debug('exporting point cloud')
-
-    # starting exporting time
-    st_export_pc = time.time()
-
-    chunk.exportPoints(os.path.join(path_pc, "PC.las"), binary=True,
-                       precision=6, colors=True, format=PhotoScan.PointsFormatLAS,
-                       projection=output_projection)
-
-    # Ending exporting time
-    end_export_pc = time.time()
-    timing['Export_PointCloud'] = str(
-        round(end_export_pc - st_export_pc, 0)) + ' sec'
-    logger.debug('Export_PointCloud Completed in : ' +
-                 timing['Export_PointCloud'])
-
-
-if cond_exp_dsm == 1:
-    logger.debug('exporting dsm')
-
-    # starting exporting time
-    st_export_dem = time.time()
-
-    chunk.exportDem(os.path.join(path_dsm, "DSM.tif"), image_format=PhotoScan.ImageFormatTIFF,
-                    tiff_big=True, nodata=-9999, write_kml=False, write_world=True)
-
-    # Ending exporting time
-    end_export_dem = time.time()
-    timing['Export_DEM'] = str(
-        round(end_export_dem - st_export_dem, 0)) + ' sec'
-    logger.debug('Export_DEM Completed in : ' + timing['Export_DEM'])
-
-# Export to PNG
-# shutil.copy(output_ortho + str(counter_1) +'.tfw', output_orthomosaic_PNG_path + str(counter_1)  +'.pgw');
-# gdal_translate = gdal.Translate(output_orthomosaic_PNG_path + str(counter_1) +".png", output_orthomosaic_tiff_path + str(counter_1) + ".tif", creationOptions = ['COMPRESS=JPEG','TILED=YES'])
-# shape.boundary_type = PhotoScan.Shape.BoundaryType.NoBoundary
-# doc.save()
-
-# Exporting timings to file
-print(timing)
-logger.debug(timing)
-
-gn.tojson(timing, os.path.join(path_timing, 'Timing.json'))
-
-# Export report
-chunk.exportReport(path=path_report, title='Processing Report')
-print("Finished")
-logger.debug('Finished')
-
-#################################################################################################
-PhotoScan.app.quit()
-sys.exit()
+    # build dense cloud
+    chunk.buildDepthMaps(quality=PhotoScan.MediumQuality,
+                         filter=PhotoScan.AggressiveFiltering, reuse_depth=True)
+    chunk.buildDenseCloud()
+
+    # Ending Dense PC
+    end_dense = time.time()
+    timing['PointCloud'] = str(round(end_dense - st_dense, 0)) + ' sec'
+    logger.debug('Dense Point Cloud Completed in : ' + timing['PointCloud'])
+
+    # save
+    # doc.save()
+
+    # build mesh
+    # chunk.buildModel(surface = PhotoScan.HeightField, interpolation = PhotoScan.EnabledInterpolation, face_count=PhotoScan.MediumFaceCount )
+
+    # Starting DEM
+    st_dem = time.time()
+
+    # Build DEM
+    chunk.buildDem(source=PhotoScan.DenseCloudData,
+                   interpolation=PhotoScan.EnabledInterpolation, projection=output_projection)
+    # Ending DEM
+    end_dem = time.time()
+    timing['DEM'] = str(round(end_dem - st_dem, 0)) + ' sec'
+    logger.debug('DEM Completed in : ' + timing['DEM'])
+
+    # save
+    # doc.save()
+
+    # Starting ortho
+    st_ortho = time.time()
+
+    # Build Ortho
+    chunk.buildOrthomosaic(surface=PhotoScan.ElevationData, blending=PhotoScan.MosaicBlending,
+                           fill_holes=True, dx=resolution_raster, dy=resolution_raster)
+
+    # Ending Orthomosaic
+    end_ortho = time.time()
+    timing['OrthoMosaic'] = str(round(end_ortho - st_ortho, 0)) + ' sec'
+    logger.debug('OrthoMosaic Completed in : ' + timing['OrthoMosaic'])
+
+    # doc.save()
+
+    # # Defining Directories
+    # output_path = os.path.join(path_project, 'output', project_name)
+
+    # gn.create_dir(output_path)
+
+    # Exporting
+    if cond_exp_ortho == 1:
+        logger.debug('exporting orthomosaic')
+
+        # starting exporting time
+        st_export_ortho = time.time()
+
+        chunk.exportOrthomosaic(os.path.join(path_ortho, "ortho.tif"), image_format=PhotoScan.ImageFormatTIFF, format=PhotoScan.RasterFormatTiles,
+                                raster_transform=PhotoScan.RasterTransformNone, tiff_big=True,
+                                write_kml=False, write_world=True, write_alpha=True, tiff_compression=PhotoScan.TiffCompressionLZW,
+                                tiff_overviews=True, jpeg_quality=80, projection=output_projection)
+
+        # Ending exporting time
+        end_export_ortho = time.time()
+        timing['Export_Ortho'] = str(
+            round(end_export_ortho - st_export_ortho, 0)) + ' sec'
+        logger.debug('Export_Ortho Completed in : ' + timing['Export_Ortho'])
+
+    if cond_exp_pc == 1:
+        logger.debug('exporting point cloud')
+
+        # starting exporting time
+        st_export_pc = time.time()
+
+        chunk.exportPoints(os.path.join(path_pc, "PC.las"), binary=True,
+                           precision=6, colors=True, format=PhotoScan.PointsFormatLAS,
+                           projection=output_projection)
+
+        # Ending exporting time
+        end_export_pc = time.time()
+        timing['Export_PointCloud'] = str(
+            round(end_export_pc - st_export_pc, 0)) + ' sec'
+        logger.debug('Export_PointCloud Completed in : ' +
+                     timing['Export_PointCloud'])
+
+    if cond_exp_dsm == 1:
+        logger.debug('exporting dsm')
+
+        # starting exporting time
+        st_export_dem = time.time()
+
+        chunk.exportDem(os.path.join(path_dsm, "DSM.tif"), image_format=PhotoScan.ImageFormatTIFF,
+                        tiff_big=True, nodata=-9999, write_kml=False, write_world=True)
+
+        # Ending exporting time
+        end_export_dem = time.time()
+        timing['Export_DEM'] = str(
+            round(end_export_dem - st_export_dem, 0)) + ' sec'
+        logger.debug('Export_DEM Completed in : ' + timing['Export_DEM'])
+
+    # Export to PNG
+    # shutil.copy(output_ortho + str(counter_1) +'.tfw', output_orthomosaic_PNG_path + str(counter_1)  +'.pgw');
+    # gdal_translate = gdal.Translate(output_orthomosaic_PNG_path + str(counter_1) +".png", output_orthomosaic_tiff_path + str(counter_1) + ".tif", creationOptions = ['COMPRESS=JPEG','TILED=YES'])
+    # shape.boundary_type = PhotoScan.Shape.BoundaryType.NoBoundary
+    # doc.save()
+
+    # Exporting timings to file
+    print(timing)
+    logger.debug(timing)
+
+    gn.tojson(timing, os.path.join(path_timing, 'Timing.json'))
+
+    # Export report
+    chunk.exportReport(path=path_report, title='Processing Report')
+    print("Finished")
+    logger.debug('Finished')
+
+    #################################################################################################
+    PhotoScan.app.quit()
+    sys.exit()
+
+
+if __name__ = '__main__':
+    try:
+        main()
+    except KeyboardInterrupt:
+        print('Interrupted')
+        try:
+            sys.exit(0)
+        except SystemExit:
+            os._exit(0)
