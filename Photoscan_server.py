@@ -98,7 +98,7 @@ def main():
     # path_photos = 'E:/Testing/Images'
     logger.debug('Project image location is : ' + path_photos)
 
-    # doc.save(os.path.join(path_project, project_name+'.psx'))
+    doc.save(os.path.join(path_project, project_name+'.psx'))
 
     # Sub_Projects=gn.booldialogbox("Do you want to create sub-projects?")
     # Processing_area = gn.booldialogbox("Do you want to enter processing area?")
@@ -185,7 +185,7 @@ def main():
                 shape.boundary_type = PhotoScan.Shape.BoundaryType.OuterBoundary
 
     # PhotoScan.Shape.BoundaryType.OuterBoundary
-    # doc.save()
+    doc.save()
     logger.debug("Saving Agisoft Project")
 
     # Start Aligning photos time
@@ -207,7 +207,7 @@ def main():
     # print(gn.get_quality(chunk))
 
     # saving images
-    # doc.save()
+    doc.save()
 
     # starting MVS time
     st_dense = time.time()
@@ -223,7 +223,7 @@ def main():
     logger.debug('Dense Point Cloud Completed in : ' + timing['PointCloud'])
 
     # save
-    # doc.save()
+    doc.save()
 
     # build mesh
     # chunk.buildModel(surface = PhotoScan.HeightField, interpolation = PhotoScan.EnabledInterpolation, face_count=PhotoScan.MediumFaceCount )
@@ -240,7 +240,7 @@ def main():
     logger.debug('DEM Completed in : ' + timing['DEM'])
 
     # save
-    # doc.save()
+    doc.save()
 
     # Starting ortho
     st_ortho = time.time()
@@ -254,7 +254,7 @@ def main():
     timing['OrthoMosaic'] = str(round(end_ortho - st_ortho, 0)) + ' sec'
     logger.debug('OrthoMosaic Completed in : ' + timing['OrthoMosaic'])
 
-    # doc.save()
+    doc.save()
 
     # # Defining Directories
     # output_path = os.path.join(path_project, 'output', project_name)
