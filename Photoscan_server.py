@@ -62,7 +62,7 @@ def main():
 
     # Checking Graphic cards
     gpu_info = PhotoScan.app.enumGPUDevices()
-    PhotoScan.app.gpu_mask = 1
+    PhotoScan.app.gpu_mask = 2 ** len(gpu_info) - 1
 
     print('Number of GPUs : ' + str(len(gpu_info)))
     for g in range(len(gpu_info)):
